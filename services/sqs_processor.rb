@@ -1,0 +1,98 @@
+#!/usr/bin/env ruby
+
+$:.unshift(File.expand_path("../../lib", __FILE__))
+
+require "dotenv"
+Dotenv.load
+
+require "logger"
+require "aws-sdk"
+require "optparse"
+require "cityhash"
+require "iqdb/responses/collection"
+require "iqdb/responses/error"
+require "iqdb/responses/responses"
+require "iqdb/server"
+
+Process.daemon
+
+$running = true
+$options = {
+  pidfile: "/var/run/iqdbs/sqs_processor.pid",
+  logfile: "/var/log/iqdbs/sqs_processor.log"
+}
+
+OptionParser.new do |opts|
+  opts.on("--pidfile=PIDFILE") do |pidfile|
+    $options[:pidfile] = pidfile
+  end
+
+  opts.on("--logfile=LOGFILE") do |logfile|
+    $options[:logfile] = logfile
+  end
+end.parse!
+
+LOGFILE = File.open($options[:logfile], "a")
+LOGFILE.sync = true
+LOGGER = Logger.new(LOGFILE, 0)
+Aws.config.update(
+  region: ENV["AMAZON_SQS_REGION"],
+  credentials: Aws::Credentials.new(
+    ENV["AMAZON_KEY"],
+    ENV["AMAZON_SECRET"]
+  )
+)
+SQS = Aws::SQS::Client.new
+QUEUE = Aws::SQS::QueuePoller.new(ENV["SQS_IQDBS_URL"], client: SQS)
+
+File.open($options[:pidfile], "w") do |f|
+  f.write(Process.pid)
+end
+
+Signal.trap("TERM") do
+  $running = false
+end
+
+def add_to_iqdb(post_id, image_url)
+  server = Iqdb::Server.new(ENV["IQDB_HOSTNAME"], ENV["IQDB_PORT"])
+  url_hash = CityHash.hash64(image_url).to_s(36)
+  url = URI.parse(image_url)
+
+  Tempfile.open("iqdbs-#{url_hash}") do |f|
+    Net::HTTP.start(url.host, url.port, :use_ssl => image_url.is_a?(URI::HTTPS)) do |http|
+      http.request_get(url.request_uri) do |res|
+        if res.is_a?(Net::HTTPSuccess)
+          LOGGER.debug("added #{image_url} for #{post_id}")
+          res.read_body(f)
+        else
+          LOGGER.error(res.to_s)
+        end
+      end
+    end
+    server.add(post_id, f.path)
+  end
+end
+
+def process_queue(poller, logger)
+  poller.before_request do
+    unless $running
+      throw :stop_polling
+    end
+  end
+
+  while $running
+    begin
+      poller.poll do |msg|
+        post_id, image_url = msg.body.split(/\n/)
+        add_to_iqdb(post_id.to_i, image_url)
+      end
+    rescue Exception => e
+      logger.error(e.message)
+      logger.error(e.backtrace.join("\n"))
+      sleep(60)
+      retry
+    end
+  end
+end
+
+process_queue(QUEUE, LOGGER)
