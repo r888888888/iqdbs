@@ -1,3 +1,5 @@
+require 'cityhash'
+
 module Iqdb
   class Server
     FLAG_SKETCH = 0x01
@@ -43,24 +45,25 @@ module Iqdb
     def download(image_url)
       url_hash = CityHash.hash64(image_url).to_s(36)
       url = URI.parse(image_url)
+      ret = nil
 
       Tempfile.open("iqdbs-#{url_hash}") do |f|
         Net::HTTP.start(url.host, url.port, :use_ssl => image_url.is_a?(URI::HTTPS)) do |http|
           http.request_get(url.request_uri) do |res|
-            yield(f, res)
+            ret = yield(f, res)
           end
         end
       end
+
+      ret
     end
 
     def download_and_add(image_url, post_id)
       download(image_url) do |f, res|
         if res.is_a?(Net::HTTPSuccess)
-          LOGGER.debug("added #{image_url} for #{post_id}")
           res.read_body(f)
+          f.close
           add(post_id, f.path)
-        else
-          LOGGER.error(res.to_s)
         end
       end
     end
@@ -78,10 +81,10 @@ module Iqdb
       download(image_url) do |f, res|
         if res.is_a?(Net::HTTPSuccess)
           res.read_body(f)
+          f.close
           query(n, f.path, flags)
         else
-          LOGGER.error(res.to_s)
-          raise Error.new("HTTP error code: #{res.code} #{res.message}")
+          raise Responses::Error.new("HTTP error code: #{res.code} #{res.message}")
         end
       end
     end

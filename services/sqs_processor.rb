@@ -76,6 +76,7 @@ def add_to_iqdb(post_id, image_url)
         if res.is_a?(Net::HTTPSuccess)
           LOGGER.debug("added #{image_url} for #{post_id}")
           res.read_body(f)
+          f.close
         else
           LOGGER.error(res.to_s)
         end
@@ -102,7 +103,7 @@ def process_queue(poller, logger)
 
         case command
         when "update"
-          logger.info("adding #{post_id}:#{image_url}")
+          logger.info("adding #{post_id} #{image_url}")
           add_to_iqdb(post_id.to_i, image_url)
 
         when "remove"
