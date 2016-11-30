@@ -24,4 +24,13 @@ apt-get -y install python-certbot-nginx -t jessie-backports
 certbot --nginx
 
 # install rbenv
-# install ruby 2.3.1
+RUBY_VERSION=2.3.1
+cd /
+sudo -u danbooru git clone git://github.com/sstephenson/rbenv.git ~danbooru/.rbenv
+sudo -u danbooru touch ~danbooru/.bash_profile
+echo 'export PATH="$HOME/.rbenv/bin:$PATH"' >> ~danbooru/.bash_profile
+echo 'eval "$(rbenv init -)"' >> ~danbooru/.bash_profile
+sudo -u danbooru mkdir -p ~danbooru/.rbenv/plugins
+sudo -u danbooru git clone git://github.com/sstephenson/ruby-build.git ~danbooru/.rbenv/plugins/ruby-build
+sudo -u danbooru bash -l -c "rbenv install $RUBY_VERSION"
+sudo -u danbooru bash -l -c "rbenv global $RUBY_VERSION"

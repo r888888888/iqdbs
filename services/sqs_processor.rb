@@ -13,8 +13,11 @@ require "iqdb/responses/collection"
 require "iqdb/responses/error"
 require "iqdb/responses/responses"
 require "iqdb/server"
+require "iqdb/command"
 
-Process.daemon
+unless ENV["RUN"]
+  Process.daemon
+end
 
 $running = true
 $options = {
@@ -32,7 +35,7 @@ OptionParser.new do |opts|
   end
 end.parse!
 
-LOGFILE = File.open($options[:logfile], "a")
+LOGFILE = $options[:logfile] == "stdout" ? STDOUT : File.open($options[:logfile], "a")
 LOGFILE.sync = true
 LOGGER = Logger.new(LOGFILE, 0)
 Aws.config.update(
@@ -53,8 +56,17 @@ Signal.trap("TERM") do
   $running = false
 end
 
+def remove_from_iqdb(post_id)
+  server = Iqdb::Server.new(ENV["IQDB_HOSTNAME"], ENV["IQDB_PORT"])
+  command = Iqdb::Command.new(ENV["IQDB_DATABASE_FILE"])
+
+  server.remove(post_id)
+  command.remove(post_id)
+end
+
 def add_to_iqdb(post_id, image_url)
   server = Iqdb::Server.new(ENV["IQDB_HOSTNAME"], ENV["IQDB_PORT"])
+  command = Iqdb::Command.new(ENV["IQDB_DATABASE_FILE"])
   url_hash = CityHash.hash64(image_url).to_s(36)
   url = URI.parse(image_url)
 
@@ -70,10 +82,13 @@ def add_to_iqdb(post_id, image_url)
       end
     end
     server.add(post_id, f.path)
+    command.add(post_id, f.path)
   end
 end
 
 def process_queue(poller, logger)
+  logger.info "Starting"
+  
   poller.before_request do
     unless $running
       throw :stop_polling
@@ -83,8 +98,20 @@ def process_queue(poller, logger)
   while $running
     begin
       poller.poll do |msg|
-        post_id, image_url = msg.body.split(/\n/)
-        add_to_iqdb(post_id.to_i, image_url)
+        command, post_id, image_url = msg.body.split(/\n/)
+
+        case command
+        when "update"
+          logger.info("adding #{post_id}:#{image_url}")
+          add_to_iqdb(post_id.to_i, image_url)
+
+        when "remove"
+          logger.info("removing #{post_id}")
+          remove_from_iqdb(post_id.to_i)
+
+        else
+          logger.info("unknown command: #{command}")
+        end
       end
     rescue Exception => e
       logger.error(e.message)

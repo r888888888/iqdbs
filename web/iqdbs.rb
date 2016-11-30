@@ -7,6 +7,14 @@ require "sinatra"
 require "json"
 require "iqdb/server"
 
+set :port, ENV["SINATRA_PORT"]
+
+before do
+  if params["key"] != ENV["AUTH_KEY"]
+    halt 401
+  end
+end
+
 get "/similar" do
   url = params["url"]
   server = Iqdb::Server.default
