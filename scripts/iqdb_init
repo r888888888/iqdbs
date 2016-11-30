@@ -1,0 +1,45 @@
+### BEGIN INIT INFO
+# Provides:          iqdb
+# Required-Start:    $remote_fs $syslog
+# Required-Stop:     $remote_fs $syslog
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Start daemon at boot time
+# Description:       Enable service provided by daemon.
+### END INIT INFO
+
+NAME=iqdb
+CHUID=danbooru
+LOGFILE=/var/log/iqdb/iqdb.log
+DESC="iqdb"
+PIDFILE=/var/run/iqdb/iqdb.pid
+ROOT_DIR=/
+PORT=4000
+IQDB_FILE=/var/www/iqdbs/shared/data/iqdb.db
+DAEMON=/usr/bin/iqdb
+DAEMON_OPTS="listen2 localhost:$PORT -r $IQDB_FILE >> $LOGFILE 2>&1"
+
+case "$1" in
+  start)
+    echo -n "Starting daemon: "$NAME
+    start-stop-daemon --start -b --chuid=$CHUID --chdir=$ROOT_DIR --quiet --make-pidfile --pidfile $PIDFILE --exec $DAEMON -- $DAEMON_OPTS
+    echo "."
+    ;;
+  stop)
+    echo -n "Stopping daemon: "$NAME
+    start-stop-daemon --stop --chuid=$CHUID --chdir=$ROOT_DIR --quiet --oknodo --remove-pidfile --pidfile $PIDFILE
+    echo "."
+   ;;
+  restart)
+    echo -n "Restarting daemon: "$NAME
+    start-stop-daemon --stop --chuid=$CHUID --chdir=$ROOT_DIR --quiet --oknodo --retry 30 --remove-pidfile --pidfile $PIDFILE
+    start-stop-daemon --start -b --chuid=$CHUID --chdir=$ROOT_DIR --quiet --make-pidfile --pidfile $PIDFILE --exec $DAEMON -- $DAEMON_OPTS
+    echo "."
+    ;;
+
+  *)
+    echo "Usage: "$1" {start|stop|restart}"
+    exit 1
+esac
+
+exit 0
