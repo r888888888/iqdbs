@@ -114,9 +114,19 @@ def process_queue(poller, logger)
           logger.info("unknown command: #{command}")
         end
       end
+      
+    rescue Interrupt
+      exit(0)
+
     rescue Exception => e
+      logger.error("#{e.class} thrown")
       logger.error(e.message)
       logger.error(e.backtrace.join("\n"))
+
+      if ENV["RUN"]
+        exit(1)
+      end
+
       sleep(60)
       retry
     end
