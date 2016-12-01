@@ -48,7 +48,7 @@ module Iqdb
       ret = nil
 
       Tempfile.open("iqdbs-#{url_hash}") do |f|
-        Net::HTTP.start(url.host, url.port, :use_ssl => image_url.is_a?(URI::HTTPS)) do |http|
+        Net::HTTP.start(url.host, url.port, :use_ssl => url.is_a?(URI::HTTPS)) do |http|
           http.request_get(url.request_uri) do |res|
             ret = yield(f, res)
           end
