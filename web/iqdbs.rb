@@ -19,15 +19,8 @@ before "/similar" do
   end
 end
 
-get "/test" do
-  logger.info "TESTING"
-  "test"
-end
-
 get "/similar" do
   url = params["url"]
-  logger.info "URL: #{url}"
-  logger.info "KEY: #{params['key']}"
   server = Iqdb::Server.default
   begin
     server.download_and_query(url, 1).to_json
