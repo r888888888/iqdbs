@@ -21,9 +21,10 @@ end
 
 get "/similar" do
   url = params["url"]
+  ref = params["ref"]
   server = Iqdb::Server.default
   begin
-    server.download_and_query(url, 1).to_json
+    server.download_and_query(url, ref, 1).to_json
   rescue Iqdb::Responses::Error => e
     JSON.generate({"error" => e.to_s})
   end
