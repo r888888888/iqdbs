@@ -1,12 +1,13 @@
 namespace :unicorn do
-  desc "Terminate unicorn processes (blocks until complete)"
+  desc "Terminate unicorn processes"
   task :terminate do
     on roles(:app) do
       execute "[[ -n $(pgrep -f unicorn) ]] && pgrep -f unicorn | xargs kill -SIGTERM"
+      sleep(5)
     end
   end
 
-  desc "Kills unicorn processes (blocks until complete)"
+  desc "Kills unicorn processes"
   task :kill do
     on roles(:app) do
       execute "[[ -n $(pgrep -f unicorn) ]] && pgrep -f unicorn | xargs kill -SIGKILL"
