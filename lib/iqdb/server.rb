@@ -1,4 +1,5 @@
 require 'cityhash'
+require 'net/http'
 
 module Iqdb
   class Server
