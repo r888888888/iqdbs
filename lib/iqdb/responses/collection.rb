@@ -28,7 +28,7 @@ module Iqdb
         if errored?
           JSON.generate(errors)
         else
-          JSON.generate(matches.map {|x| {"post_id" => x.post_id, "width" => x.width, "height" => x.height}})
+          JSON.generate(matches.map {|x| {"post_id" => x.post_id, "width" => x.width, "height" => x.height, "score" => x.score}})
         end
       end
     end
