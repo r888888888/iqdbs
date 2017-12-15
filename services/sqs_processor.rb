@@ -74,9 +74,10 @@ def add_to_iqdb(post_id, image_url)
     Net::HTTP.start(url.host, url.port, :use_ssl => image_url.is_a?(URI::HTTPS)) do |http|
       http.request_get(url.request_uri) do |res|
         if res.is_a?(Net::HTTPSuccess)
-          LOGGER.debug("added #{image_url} for #{post_id}")
           res.read_body(f)
+          size = f.size
           f.close
+          LOGGER.debug("added #{image_url} for #{post_id} (size:#{size})")
         else
           LOGGER.error(res.to_s)
         end
