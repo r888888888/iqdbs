@@ -71,17 +71,22 @@ def add_to_iqdb(post_id, image_url)
   url = URI.parse(image_url)
 
   Tempfile.open("iqdbs-#{url_hash}") do |f|
-    Net::HTTP.start(url.host, url.port, :use_ssl => image_url.is_a?(URI::HTTPS)) do |http|
-      http.request_get(url.request_uri) do |res|
-        if res.is_a?(Net::HTTPSuccess)
-          res.read_body(f)
-          size = f.size
-          f.close
-          LOGGER.debug("added #{image_url} for #{post_id} (size:#{size})")
-        else
-          LOGGER.error(res.to_s)
+    begin
+      Net::HTTP.start(url.host, url.port, :use_ssl => image_url.is_a?(URI::HTTPS)) do |http|
+        http.request_get(url.request_uri) do |res|
+          if res.is_a?(Net::HTTPSuccess)
+            res.read_body(f)
+            size = f.size
+            f.close
+            LOGGER.debug("added #{image_url} for #{post_id} (size:#{size})")
+          else
+            LOGGER.error(res.to_s)
+          end
         end
       end
+    rescue Net::HTTPServiceUnavailable, Net::HTTPBadGateway, Net::HTTPGatewayTimeOut
+      sleep(60)
+      retry
     end
     server.add(post_id, f.path)
     command.add(post_id, f.path)
