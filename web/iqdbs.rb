@@ -19,6 +19,16 @@ before "/similar" do
   end
 end
 
+post "/similar" do
+  file = params["file"]
+  server = Iqdb::Server.default
+  begin
+    server.query(5, file["tempfile"].path).to_json
+  rescue Iqdb::Responses::Error => e
+    JSON.generate({"error" => e.to_s})
+  end
+end
+
 get "/similar" do
   url = params["url"]
   ref = params["ref"]
