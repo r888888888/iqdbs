@@ -10,7 +10,6 @@ require "iqdb/responses/error"
 require "iqdb/responses/responses"
 require "iqdb/server"
 require "iqdb/command"
-require "acti"
 
 set :port, ENV["SINATRA_PORT"]
 
