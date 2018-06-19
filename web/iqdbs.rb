@@ -31,32 +31,36 @@ def find_referer(url)
   return nil
 end
 
-post "/similar" do
+search = lambda do
   server = Iqdb::Server.default
 
   begin
     if params["file"]
       file = params["file"]
       results = server.query(5, file["tempfile"].path)
-      
-      if params["callback"]
-        data = results.matches.map {|x| [x.post_id, x.score]}.to_json
-        url = URI::HTTP.build(host: params["callback"], query: URI.encode_www_form({matches: data}))
-        redirect url.to_s
-      else
-        results.to_json
-      end
-
     elsif params["url"]
       url = params["url"]
       ref = params["ref"] || find_referer(url)
-      server.download_and_query(url, ref, 5).to_json
+      results = server.download_and_query(url, ref, 5).to_json
+    end
+
+    if params["callback"]
+      data = results.matches.map {|x| [x.post_id, x.score]}.to_json
+      url = URI.parse(params["callback"])
+      url.query = URI.encode_www_form({matches: data})
+      redirect url.to_s
+    else
+      results.to_json
     end
 
   rescue Iqdb::Responses::Error => e
     JSON.generate({"error" => e.to_s})
   end
-end
+end 
+
+post "/similar", &search
+
+get "/similar", &search
 
 get "/" do
 	redirect "/index.html"
