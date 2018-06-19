@@ -1,6 +1,3 @@
-# config valid only for current version of Capistrano
-lock '3.6.1'
-
 set :application, 'iqdbs'
 set :repo_url, 'git://github.com/r888888888/iqdbs.git'
 set :rbenv_type, :user
