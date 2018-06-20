@@ -41,7 +41,7 @@ search = lambda do
     elsif params["url"]
       url = params["url"]
       ref = params["ref"] || find_referer(url)
-      results = server.download_and_query(url, ref, 5).to_json
+      results = server.download_and_query(url, ref, 5)
     end
 
     if params["callback"]
@@ -57,6 +57,10 @@ search = lambda do
     JSON.generate({"error" => e.to_s})
   end
 end 
+
+get "/favicon.ico" do
+  204
+end
 
 post "/similar", &search
 
