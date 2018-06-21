@@ -31,7 +31,7 @@ module Iqdb
       open
       yield
     ensure
-      close
+      close if socket
     end
 
     def add(post_id, file_path)
