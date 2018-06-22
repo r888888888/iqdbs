@@ -50,10 +50,12 @@ search = lambda do
       url.query = URI.encode_www_form({matches: data})
       redirect url.to_s
     else
+      content_type :json
       results.to_json
     end
 
   rescue Iqdb::Responses::Error => e
+    content_type :json
     JSON.generate({"error" => e.to_s})
   end
 end 
