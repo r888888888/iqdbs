@@ -37,15 +37,15 @@ search = lambda do
   begin
     if params["file"]
       file = params["file"]
-      results = server.query(5, file["tempfile"].path)
+      results = server.query(3, file["tempfile"].path)
     elsif params["url"]
       url = params["url"]
       ref = params["ref"] || find_referer(url)
-      results = server.download_and_query(url, ref, 5)
+      results = server.download_and_query(url, ref, 3)
     end
 
     if params["callback"]
-      data = results.matches.map {|x| [x.post_id, x.score]}.to_json
+      data = results.to_json
       url = URI.parse(params["callback"])
       url.query = URI.encode_www_form({matches: data})
       redirect url.to_s
